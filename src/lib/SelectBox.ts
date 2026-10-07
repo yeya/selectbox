@@ -22,7 +22,7 @@ import {
 } from '@danielgindi/dom-utils/lib/DomCompat';
 
 import DomEventsSink from '@danielgindi/dom-utils/lib/DomEventsSink';
-import DropList, { ItemSymbol } from './DropList';
+import DropList, { DefaultOptions as DropListDefaultOptions, ItemSymbol } from './DropList';
 import reportError from './utils/reportError';
 import {
     VALUE_BACK_SPACE,
@@ -31,7 +31,7 @@ import {
     VALUE_RIGHT,
 } from 'keycode-js';
 import mitt, { type Emitter } from 'mitt';
-import type { SelectBoxOptions, ItemBase, DropListOptions, PositionOptions } from './types.js';
+import type { SelectBoxOptions, ItemBase, DropListOptions, DropListZIndex, PositionOptions } from './types.js';
 
 const DestroyedSymbol = Symbol('destroyed');
 const RestMultiItemsSymbol = Symbol('rest_multi_items');
@@ -1063,6 +1063,21 @@ class SelectBox {
         return this;
     }
 
+    /**
+     * Sets `listOptions.zIndex` without recreating the DropList.
+     * `undefined` falls back to `DropListDefaultOptions.zIndex`.
+     */
+    setListZIndex(zIndex: DropListZIndex | undefined): this {
+        const p = this._p;
+        p.listOptions = { ...p.listOptions, zIndex };
+        p.dropList?.setZIndex(zIndex === undefined ? DropListDefaultOptions.zIndex : zIndex);
+        return this;
+    }
+
+    getListZIndex(): DropListZIndex | undefined {
+        return this._p.listOptions?.zIndex;
+    }
+
     setRenderSingleItem(render: SelectBoxOptions['renderSingleItem'], unrender: SelectBoxOptions['unrenderSingleItem']): this {
         const p = this._p;
         p.renderSingleItem = render;
@@ -2012,6 +2027,8 @@ class SelectBox {
                 }
             },
         });
+
+        dropList._setOwnerSelectBox(this);
 
         p.sink.add(dropList.el, 'mousedown', preventDropListMouseDownBlur);
 

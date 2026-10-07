@@ -51,6 +51,8 @@ export interface DropListVueProps {
     renderItem?: DropListOptions['renderItem'];
     unrenderItem?: DropListOptions['unrenderItem'];
     positionOptions?: PositionOptions;
+    /** z-index for the drop list (see `DropListOptions.zIndex`). `undefined` uses `DropListDefaultOptions.zIndex`. */
+    zIndex?: DropListOptions['zIndex'];
     autoRelayoutOnItemsChange?: boolean;
 }
 
@@ -161,6 +163,8 @@ export interface SelectBoxVueProps {
     autoCheckGroupChildren?: boolean;
     constrainListToWindow?: boolean;
     autoFlipListDirection?: boolean;
+    /** z-index for the drop list (see `DropListOptions.zIndex`). `undefined` uses `DropListDefaultOptions.zIndex`. */
+    listZIndex?: DropListOptions['zIndex'];
 }
 
 export type SelectBoxVueEmits = {

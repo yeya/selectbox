@@ -47,6 +47,33 @@ You are welcome to open a PR and add examples, docs, and demo pages :-)
 
 You are welcome to open a PR and add some api docs :-)
 
+### Managing z-index
+
+A `DropList` (standalone, or owned by a `SelectBox`) can have its z-index set by the `zIndex` option:
+a fixed number/string, or a function resolved every time the list is shown.  
+Set it globally on `DropListDefaultOptions`, so it applies everywhere - including the lists of `SelectBox`es:
+
+```js
+import { DropListDefaultOptions } from '@danielgindi/selectbox';
+
+DropListDefaultOptions.zIndex = ({ owner, selectBox, dropList, positionOptions }) => {
+    // `owner` is the SelectBox's element for a SelectBox's list,
+    // otherwise the `target` of the position options (or `null`).
+    // `selectBox` is the owning SelectBox instance, or `null`.
+    const popup = owner?.closest('.popup');
+    if (popup)
+        return Number(getComputedStyle(popup).zIndex) + 1;
+    return null; // keep the CSS z-index
+};
+```
+
+* Per instance: `new DropList({ zIndex })`, `new SelectBox({ listOptions: { zIndex } })`,
+  `dropList.setZIndex(zIndex)`, `selectBox.setListZIndex(zIndex)`.
+* Vue: `<DropList :z-index="...">`, `<SelectBox :list-z-index="...">`.
+* Call `dropList.updateZIndex()` to re-resolve while the list is open.
+* Sub-item lists inherit their parent list's z-index.
+* Returning `null`/`undefined` leaves the CSS z-index (`10000` in `droplist.scss`) in effect.
+
 ## Vite
 
 When using with Vite - you'll need to add this `optimizeDeps to` `vite.config.js`:

@@ -1,4 +1,5 @@
 import type DropList from './DropList.js';
+import type SelectBox from './SelectBox.js';
 
 /**
  * Context describing where a library-internal error/warning originated.
@@ -47,6 +48,37 @@ export interface PositionOptions {
     /** Extra rtl-aware offset to the target */
     offset?: { x: number, y: number };
 }
+
+/**
+ * Describes the DropList whose z-index is being resolved, and who owns it.
+ */
+export interface DropListZIndexContext {
+    /** The DropList being shown */
+    dropList: DropList;
+    /**
+     * The element that owns this DropList:
+     * - For a DropList owned by a `SelectBox` - the SelectBox's root element.
+     * - Otherwise - the `target` of the current position options.
+     *
+     * `null` when there is no owning element (i.e. shown without a target).
+     */
+    owner: Element | null;
+    /** The `SelectBox` that owns this DropList, or `null` for a standalone DropList. */
+    selectBox: SelectBox | null;
+    /** The position options used for showing the DropList, if any. */
+    positionOptions: PositionOptions | null;
+}
+
+/**
+ * Resolves a z-index for a DropList when it is shown.
+ * Return `null`/`undefined` to fall back to the CSS z-index.
+ */
+export type DropListZIndexResolver = (context: DropListZIndexContext) => number | string | null | undefined;
+
+/**
+ * A fixed z-index, a resolver function, or `null` to use the CSS z-index.
+ */
+export type DropListZIndex = number | string | DropListZIndexResolver | null;
 
 export interface ItemBase {
     value?: any;
@@ -153,6 +185,12 @@ export interface DropListOptions {
     filterEmptyGroups?: boolean;
     filterFn?: (items: ItemBase[], term: string) => (ItemBase[] | null);
     positionOptionsProvider?: (dropList?: DropList) => PositionOptions;
+    /**
+     * z-index for the DropList's element: a fixed value, or a function resolving it each time the DropList is shown.
+     * Set it on `DropListDefaultOptions` to manage stacking globally (it applies to SelectBox-owned DropLists too).
+     * `null` leaves the CSS z-index in effect. Sub-item DropLists inherit their parent's z-index. (default: null)
+     */
+    zIndex?: DropListZIndex;
     /** Intercept internal errors/warnings (e.g. from a throwing `renderItem`/`unrenderItem`) instead of the default `console.error`/`console.warn`. */
     onError?: LibraryErrorHandler;
 }

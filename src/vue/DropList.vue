@@ -10,6 +10,7 @@ import { defineComponent, version, type PropType } from 'vue';
 import type {
     DropListInputKeydownOptions,
     DropListOptions,
+    DropListZIndex,
     ItemBase,
     PositionOptions,
 } from '@danielgindi/selectbox';
@@ -159,6 +160,11 @@ export const PropTypes = {
     positionOptions: {
         type: Object as PropType<PositionOptions>,
     },
+    /** z-index for the drop list (see `DropListOptions.zIndex`). `undefined` uses `DropListDefaultOptions.zIndex`. */
+    zIndex: {
+        type: [Number, String, Function] as unknown as PropType<DropListZIndex>,
+        default: undefined as any,
+    },
     autoRelayoutOnItemsChange: {
         type: Boolean,
         default: true,
@@ -258,6 +264,10 @@ export default defineComponent({
 
             if (typeof this.filterFn === 'function') {
                 opts.filterFn = this.filterFn;
+            }
+
+            if (this.zIndex !== undefined) {
+                opts.zIndex = this.zIndex;
             }
 
             opts.searchPlaceholder = this.searchPlaceholder;
@@ -362,6 +372,11 @@ export default defineComponent({
         onError() {
             if (this.nonReactive.instance)
                 this.nonReactive.instance.setOnError(this.onError);
+        },
+
+        zIndex(value) {
+            if (this.nonReactive.instance)
+                this.nonReactive.instance.setZIndex(value === undefined ? DefaultOptions.zIndex : value);
         },
 
         renderItem() {

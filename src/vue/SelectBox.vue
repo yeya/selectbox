@@ -7,7 +7,7 @@ import { defineComponent, markRaw, version, type PropType } from 'vue';
 import { SelectBox, SelectBoxDefaultOptions as DefaultOptions } from '@danielgindi/selectbox';
 import { createSlotBasedRenderFunc, createSlotBasedUnrenderFunc } from './utils/slots';
 import deepEqual from 'fast-deep-equal';
-import type { SelectBoxOptions, DropListOptions, ItemBase } from '@danielgindi/selectbox';
+import type { SelectBoxOptions, DropListOptions, DropListZIndex, ItemBase } from '@danielgindi/selectbox';
 
 const isVue3 = version > '3.';
 
@@ -288,6 +288,11 @@ export const PropTypes = {
         type: Boolean,
         default: true,
     },
+    /** z-index for the drop list (see `DropListOptions.zIndex`). `undefined` uses `DropListDefaultOptions.zIndex`. */
+    listZIndex: {
+        type: [Number, String, Function] as unknown as PropType<DropListZIndex>,
+        default: undefined as any,
+    },
 };
 
 export default defineComponent({
@@ -349,6 +354,10 @@ export default defineComponent({
 
             opts.virtualMinItems = this.virtualMinItems;
             opts.useExactTargetWidth = this.fixedDroplistWidth;
+
+            if (this.listZIndex !== undefined) {
+                opts.zIndex = this.listZIndex;
+            }
 
             opts.renderItem = this.renderListItem;
             if (!opts.renderItem) {
@@ -595,6 +604,11 @@ export default defineComponent({
         onError() {
             if (this.instance)
                 (this.instance as any).setOnError(this.onError);
+        },
+
+        listZIndex(value) {
+            if (this.instance)
+                this.instance.setListZIndex(value);
         },
 
         labelProp(value) {

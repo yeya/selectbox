@@ -5,6 +5,9 @@ export { DropList, SelectBox, DropListDefaultOptions, SelectBoxDefaultOptions, I
 export type {
     DropListInputKeydownOptions,
     DropListOptions,
+    DropListZIndex,
+    DropListZIndexContext,
+    DropListZIndexResolver,
     SelectBoxOptions,
     ItemBase,
     Item,

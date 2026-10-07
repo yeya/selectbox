@@ -31,7 +31,15 @@ import {
 } from 'keycode-js';
 import throttle from './utils/throttle';
 import type { Throttled } from './utils/throttle.js';
-import type { DropListInputKeydownOptions, DropListOptions, ItemBase, PositionOptions } from './types.js';
+import type {
+    DropListInputKeydownOptions,
+    DropListOptions,
+    DropListZIndex,
+    DropListZIndexContext,
+    ItemBase,
+    PositionOptions,
+} from './types.js';
+import type SelectBox from './SelectBox.js';
 import reportError from './utils/reportError';
 import mitt, { type Emitter } from 'mitt';
 
@@ -107,6 +115,11 @@ interface DropListState {
     unrenderNoResultsItem?: DropListOptions['unrenderNoResultsItem'];
     on: DropListOptions['on'] | null;
     positionOptionsProvider: DropListOptions['positionOptionsProvider'] | null;
+    zIndex: DropListZIndex;
+    /** the z-index this DropList has set on `el`, or `null` while the CSS z-index is in effect */
+    appliedZIndex: string | null;
+    /** the SelectBox owning this DropList, if any (set via `_setOwnerSelectBox`) */
+    ownerSelectBox: SelectBox | null;
     /** no default in `DefaultOptions`; falls back to `console.error`/`console.warn` when unset */
     onError?: DropListOptions['onError'];
 
@@ -204,6 +217,8 @@ export const DefaultOptions: DropListOptions = {
 
     on: null,
 
+    zIndex: null,
+
     isHeaderVisible: false,
     isFooterVisible: false,
     searchable: false,
@@ -283,6 +298,9 @@ class DropList {
             unrenderNoResultsItem: o.unrenderNoResultsItem,
             on: o.on || null,
             positionOptionsProvider: o.positionOptionsProvider ?? null,
+            zIndex: o.zIndex ?? null,
+            appliedZIndex: null,
+            ownerSelectBox: null,
             onError: o.onError,
 
             searchable: o.searchable,
@@ -1193,6 +1211,92 @@ class DropList {
     }
 
     /**
+     * Sets the z-index: a fixed value, a resolver function, or `null` to use the CSS z-index.
+     * Applied immediately if the DropList is visible.
+     */
+    setZIndex(zIndex: DropListZIndex | undefined): this {
+        const p = this._p;
+        zIndex = zIndex ?? null;
+        if (p.zIndex === zIndex)
+            return this;
+        p.zIndex = zIndex;
+        this.updateZIndex();
+        return this;
+    }
+
+    getZIndex(): DropListZIndex {
+        return this._p.zIndex;
+    }
+
+    /**
+     * Re-resolves the z-index (re-invoking a resolver function) and applies it.
+     * The z-index is resolved automatically on `show()`, so call this only when the stacking
+     * order around the owner changes while the DropList is open. Does nothing while hidden.
+     */
+    updateZIndex(): this {
+        const p = this._p;
+        if (!this.isVisible())
+            return this;
+        this._applyZIndex(p.positionOptionsProvider?.() ?? p.lastPositionOptions ?? null);
+        return this;
+    }
+
+    /**
+     * Marks this DropList as owned by a SelectBox, for `DropListZIndexContext`.
+     * @internal
+     */
+    _setOwnerSelectBox(selectBox: SelectBox | null) {
+        this._p.ownerSelectBox = selectBox;
+    }
+
+    /** @internal */
+    _resolveZIndex(positionOptions: PositionOptions | null): string | null {
+        const p = this._p;
+        const option = p.zIndex;
+        let zIndex: number | string | null | undefined;
+
+        if (typeof option === 'function') {
+            const context: DropListZIndexContext = {
+                dropList: this,
+                owner: p.ownerSelectBox?.el ?? positionOptions?.target ?? null,
+                selectBox: p.ownerSelectBox,
+                positionOptions,
+            };
+
+            try {
+                zIndex = option(context);
+            } catch (err) {
+                reportError(p.onError, err, { source: 'zIndex' });
+                zIndex = null;
+            }
+        } else {
+            zIndex = option;
+        }
+
+        if (zIndex == null || zIndex === '')
+            return null;
+
+        return String(zIndex);
+    }
+
+    /** @internal */
+    _applyZIndex(positionOptions: PositionOptions | null) {
+        const p = this._p;
+        const zIndex = this._resolveZIndex(positionOptions);
+
+        if (zIndex !== null) {
+            p.el.style.zIndex = zIndex;
+        } else if (p.appliedZIndex !== null) {
+            // Only clear a value we've set ourselves, never one the consumer set on a supplied `el`
+            p.el.style.zIndex = '';
+        }
+
+        p.appliedZIndex = zIndex;
+
+        p.currentSubDropList?.droplist?.updateZIndex();
+    }
+
+    /**
      * Sets a handler to intercept internal errors/warnings (e.g. from a throwing `renderItem`/`unrenderItem`)
      * instead of the default `console.error`/`console.warn`.
      */
@@ -1902,6 +2006,8 @@ class DropList {
             p.lastPositionOptions = positionOptions;
         }
 
+        this._applyZIndex(positionOptions ?? null);
+
         if (positionOptions) {
             const elComputedStyle = getComputedStyle(el);
 
@@ -2206,6 +2312,8 @@ class DropList {
             renderItem: p.renderItem,
             unrenderItem: p.unrenderItem,
             positionOptionsProvider: () => p.currentSubDropList.showOptions,
+            // Sub-lists stack with their parent: same z-index, later in the DOM
+            zIndex: () => this._p?.appliedZIndex ?? null,
         });
 
         let onBlur = (event: any) => {
