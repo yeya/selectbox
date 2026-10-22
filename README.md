@@ -41,7 +41,9 @@ I really hope to get this documented so everyone can enjoy it.
 
 ## Docs & examples
 
-The docs page (`example/`) demonstrates every feature, section by section, each with its source code:
+**[Live docs & demos](https://yeya.github.io/selectbox/)** - every feature, section by section, each with its source code.
+
+The page lives in `example/` and is published to GitHub Pages on every push to `master`. To work on it locally:
 
 ```bash
 npm run example        # serve it locally
